@@ -154,7 +154,7 @@ def fetch_email_by_id(service, msg_id):
 
     if(company != "not job related"):
         print("Sending to frontend!")
-        resp = requests.post('http://localhost:8080', json=email_data)
+        resp = requests.post('http://localhost:8080/emails', json=email_data)
         if resp.ok:
             print(f"Emails successfully sent to Flask")
         else:

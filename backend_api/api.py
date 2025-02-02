@@ -84,6 +84,8 @@ def handle_disconnect():
     active_connections.remove(request.sid)
     print(f"Client disconnected: {request.sid}")
 
+import traceback
+
 @app.route('/emails', methods=['POST'])
 def add_emails():
     global email_list
@@ -92,13 +94,14 @@ def add_emails():
         email_list = email_data
         
         # Emit to all connected clients
-        socketio.emit('email_update', email_data, broadcast=True)
+        socketio.emit('email_update', email_data, to=None)
         
         return jsonify({"message": "Emails saved and broadcast successfully"}), 200
     except Exception as e:
+        traceback.print_exc()
         return jsonify({"error": str(e)}), 400
 
 
 #Start the Flask app
 if __name__ == '__main__':
-    socketio.run(app, debug=True)
+    socketio.run(app, debug=True, port=8080)

@@ -15,7 +15,7 @@ def classify_email(email_content):
         model="gpt-4o-mini",
         messages=[
             {"role": "system", "content": "You are an AI email classifier."},
-            {"role": "user", "content": "Classify the following email into either 'acceptance', 'rejection', or 'pending'. If the email asks for an interview or more information, classify as 'pending'. Answer in one word only."},
+            {"role": "user", "content": "Classify the following email into either 'offer' which means accepted, 'rejected', 'pending', or 'interview'. If the email asks for more information, classify as 'pending'. Answer in one word only."},
             {"role": "user", "content": email_content}
         ]
     )
