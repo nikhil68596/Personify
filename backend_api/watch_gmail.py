@@ -7,6 +7,17 @@ import base64
 import json
 import subprocess
 import time
+import sys
+import datetime
+import requests
+
+try:
+    from ML_Model import classify_email
+    from ML_Model import classify_company_email
+    print("✅ Successfully imported ML_Model.")
+except Exception as e:
+    print(f"❌ ERROR: Failed to import ML_Model. Details: {e}")
+    exit(1)
 
 # OAuth 2.0 Scopes for Gmail API
 SCOPES = [
@@ -92,13 +103,23 @@ def get_new_emails(service, history_id):
         fetch_latest_email(service)
 
 def fetch_email_by_id(service, msg_id):
-    """Fetches and prints email details by message ID."""
+    """Fetches and prints email details by message ID, including received date."""
     print(f"📨 Retrieving email content for message ID: {msg_id}...")
     message = service.users().messages().get(userId="me", id=msg_id, format="full").execute()
 
     headers = message["payload"].get("headers", [])
+    
+    # Extract metadata
     subject = next((h["value"] for h in headers if h["name"] == "Subject"), "No Subject")
     sender = next((h["value"] for h in headers if h["name"] == "From"), "Unknown Sender")
+    date_received = next((h["value"] for h in headers if h["name"] == "Date"), "Unknown Date")
+
+    # Convert the date to a standard format
+    try:
+        parsed_date = datetime.datetime.strptime(date_received, "%a, %d %b %Y %H:%M:%S %z")
+        formatted_date = parsed_date.strftime("%Y-%m-%d %H:%M:%S %Z")  # Standard format
+    except ValueError:
+        formatted_date = date_received  # Fallback in case of parsing errors
 
     # Decode the email body
     body = "No Body Available"
@@ -108,10 +129,40 @@ def fetch_email_by_id(service, msg_id):
                 body = base64.urlsafe_b64decode(part["body"]["data"]).decode("utf-8")
                 break
 
+    # 📌 Concatenating subject and body into "content"
+    content = f"Subject: {subject}\nBody: {body}"
+
+    company = classify_company_email(sender, content)
+
     print(f"\n📩 New Email Received!")
     print(f"📌 From: {sender}")
-    print(f"📌 Subject: {subject}")
-    print(f"📌 Body Preview: {body[:500]}")  # Show first 500 characters
+    print(f"📅 Received Date: {formatted_date}")
+    print(f"📌 {content[:500]}")  # Show first 500 characters
+
+    # Classify the email content
+    status = classify_email(content)
+
+    # ✅ Create a structured dictionary
+    email_data = {
+        "date": formatted_date,
+        "company": company,  # Placeholder, can be updated with company extraction logic
+        "company-email": sender,
+        "status": status
+    }
+
+    print("📌 Email Data:", email_data)
+
+    if(company != "not job related"):
+        print("Sending to frontend!")
+        resp = requests.post('http://localhost:8080', json=email_data)
+        if resp.ok:
+            print(f"Emails successfully sent to Flask")
+        else:
+            print(f'[Error] Received {resp.status_code} when sending to localhost (flask)')
+    else:
+        print("Not sending to frontend!")
+     
+    return email_data  # Returning for further processing if needed
 
 def fetch_latest_email(service):
     """Manually fetches the latest email from the inbox."""
