@@ -1,0 +1,12 @@
+{
+  "users": {
+    "name@example.com": [
+      {
+        "date": "2025-02-01 22:36:12 UTC-05:00",
+        "company": "Google",
+        "company_email": "name@example.com",
+        "status": "Accepted"
+      }
+    ]
+  }
+}
